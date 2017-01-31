@@ -1,0 +1,23 @@
+#Python Assignment
+
+import define_exoplanet_class
+import csv
+    
+data = []
+
+dExoplanets={}
+headers=[]
+listg=[]
+
+def read_data(data):
+    with open(data, 'r') as csvfile:
+        planets_csv = csv.reader(csvfile)
+        for line in planets_csv:
+    
+            if not line[0].startswith('#'): #Remove comments from file
+    
+                if not line[0].isdigit(): 
+                    headers=line
+                else:
+                    data.append(line)
+    return data

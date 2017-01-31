@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Jan 29 18:46:35 2017
+
+@author: Lauren
+"""
+
+#####
+#Main file
+#####
+
+import import_csv
+import sys
+from collections import Counter
+
+#Function will try to convert the string to a float
+#If the string is incompatible 0 will be returned
+def convert_str_to_float(x):
+    try:return(float(x))
+    except:return(float(0))
+
+#Function returns the column in the array without empty fields 
+def get_cleaned_column(array,column):
+    return list(filter(None, (row[column] for row in array)))
+    #return [row[column] for row in array]
+        
+#return(max(convert_str_to_float(row[column]) for row in array))
+#For blank entries, assume value of -infinity, so as not to influence max
+def get_maximum(array,column):
+    return((max(array,key=lambda x: convert_str_to_float(x[column]) if x[column] else -float("inf") )[column]))
+  
+    
+#return(min(convert_str_to_float(row[column]) for row in array))
+#For blank entries, assume value of +infinity, so as not to influence min
+def get_minimum(array,column):
+    return((min(array,key=lambda x: convert_str_to_float(x[column]) if x[column] else float("inf") )[column]))
+
+    
+#Function calculates mean in column given an array of data and a column
+#Empty fields are ignored
+#If field cannot be converted to a float, a value of 0 is assumed
+### Fine for this current .csv but for compatability should ignore ANY non-floatable field
+### Hopefully I remember to come back and fix this before submitting!
+def get_mean(array,column):       
+    sum_of_column = sum(convert_str_to_float(array[n][column]) for n in range(len(array)))
+    blanks = get_blanks(array,column)
+    return(sum_of_column/(len(array)-blanks))
+    
+    
+    
+#Returns the number of blank fields in the column
+def get_blanks(array,column):
+    return list(row[column] for row in array).count('')
+
+    
+    
+#Returns the median value of the column    
+def get_median(array,column):
+    c=sorted(get_cleaned_column(array,column))
+    center=len(c)/2
+    if len(c)%2!=0: 
+        #If there is an odd number of rows, int(center) will round up to correct index
+        return float(c[int(center)])
+    else: 
+        #If even number of rows, median is avg of the two central numbers
+        #column[center]+column(center-1) / 2
+        return ((float(c[int(len(c)/2)])+float(c[int(len(c)/2-1)]))/2.)
+
+        
+        
+def get_standard_deviation(array,column):
+    list_of_squared_results=[]
+    
+    #Work out the mean
+    mean = get_mean(array,column)
+    
+    c = get_cleaned_column(array,column)
+    
+    #For each number, subtract the mean and square the result
+    for row in c:
+        list_of_squared_results.append((float(row)-mean)**2)
+    #Work out the mean of those squared differences
+    #Return square root of mean
+    return (sum(list_of_squared_results)/len(list_of_squared_results)) ** 0.5
+
+
+def get_planet_ID(value,array,column):
+    single_column=[row[column] for row in array]
+    if value in single_column:
+        return array[int(single_column.index(value))][0]
+    else:
+        print("Value not found")
+        
+        
+def get_attribute(ID,array,column):
+    return array[int(ID)][int(column)]
+
+
+def get_number_of_occurances(array,column):
+    return Counter(row[column] for row in array)
+    
+#Function takes in a 2D array of attributes to look for and their conditions
+#e.g. attribute = 'st_dist', condition is '<30'
+#Uses string operations to combine into one command
+#Then eval() evaluates the string
+#Returns a list of all planets that satisfy all the conditions
+#def get_planets_that_satisfy_conditions(list_of_conditions,array):
+def get_planets_that_satisfy_conditions(array,headers,user_input_conditions):
+    #list_of_conditions=[['st_dist < 30']]
+    #operations = ['<','>','==','!=']
+    #for condition in list_of_conditions:
+    #    if operations in condition.replace(" ", "")
+    ###MMUST ADD STRING CHECKING HERE!!!###
+    ###Only works for numerical checks
+    headers = headers
+    #user_input_conditions=[['rowid','<4']] 
+    operations=[]
+    columns=[]
+    for condition in user_input_conditions:
+        columns.append("headers['"+condition[0]+"']")
+        operations.append("convert_str_to_float(row[headers['"+condition[0]+"']])"+condition[1])
+    print(operations) 
+    for operation in operations:
+        for row in array[row]:
+            for col in row:
+                print(array[row][col])
+                if eval(operation):
+                    print("woo!")
+        
+def assignment_questions(array,headers):
+    #Part 1
+    #Find the closest exoplanet and the farthest exoplanet (using st_dist).
+    closest_exoplanet_dist=get_minimum(array,headers['st_dist'])
+    farthest_exoplanet_dist=get_maximum(array,headers['st_dist'])
+    closest_exoplanet = get_planet_ID(closest_exoplanet_dist,array,headers['st_dist'])
+    farthest_exoplanet = get_planet_ID(farthest_exoplanet_dist,array,headers['st_dist'])
+    print("The closest exoplanet to us is ", end="")
+    print(str(get_attribute(closest_exoplanet,array,headers['pl_hostname'])) + str(get_attribute(closest_exoplanet,array,headers['pl_letter'] )), end="")
+    print(" at a distance of "+closest_exoplanet_dist +"pc")
+    print("The farthest exoplanet to us is ", end="")
+    print(str(get_attribute(farthest_exoplanet,array,headers['pl_hostname'])) + str(get_attribute(farthest_exoplanet,array,headers['pl_letter'] )), end="")
+    print(" at a distance of "+farthest_exoplanet_dist +"pc")
+
+    print("\n")
+    #Part2
+    #- Find the minimum, maximum, and mean of the effective temperatures of the exoplanets (using st_teff).
+    print("The minimum effective temperature is " + get_minimum(array,headers['st_teff']) + "K")
+    print("The maximum effective temperature is " + get_maximum(array,headers['st_teff']) + "K")
+    print("The mean effective temperature is " + str(get_mean(array,headers['st_teff'])) + "K")
+    print("\n")
+    
+    #Part 3
+    #- Find the mean, median and standard deviation of the exoplanets' orbital eccentricity (using pl_orbeccen). 
+    print("The mean orbital eccentricity is " + str(get_mean(array,headers['pl_orbeccen'])))
+    print("The median orbital eccentricity is " + str(get_median(array,headers['pl_orbeccen'])))
+    print("The standard deviation of orbital eccentricity is ", end="")
+    print(str(get_standard_deviation(array,headers['pl_orbeccen'])))
+    print("\n")
+    
+    #Part 4
+    #Count how many exoplanets have been found each year
+    print("The number of exoplanets found each year:")
+    n_disc_a_year = get_number_of_occurances(array,headers['pl_disc'])
+    for year, number in n_disc_a_year.most_common():
+        print(year, number)
+    print("\n")
+        
+    #Part 5
+    #- Find how many exoplanets there are less than 30 pc away, with effective temperature < 3000 K, and orbital eccentricity < 0.2.
+    conds = [['st_dist','<30.0'],['st_teff','<3000.0'],['pl_orbeccen','<0.2']]
+    get_planets_that_satisfy_conditions(array,headers,conds)
+
+def main():
+    data,headers = (import_csv.as_list(sys.argv[1]))
+
+    assignment_questions(data,headers)
+    
+    
+main()
